@@ -363,7 +363,7 @@
     btn.textContent = "Ruko, summary ban rahi hai...";
 
     try {
-      const res = await fetch("/.netlify/functions/summarize", {
+      const res = await fetch("/api/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, lang })
