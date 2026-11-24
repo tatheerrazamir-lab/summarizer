@@ -1,5 +1,5 @@
-const MODEL = "gemini-2.5-flash";
-const MAX_CHARS = 20000;
+const MODEL = "gemini-3.8-flash";
+const MAX_CHARS = 50000;
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
