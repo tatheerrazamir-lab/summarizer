@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ur">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Document Summarizer</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+      color: #1e293b;
+      background: radial-gradient(circle at 20% 20%, #c7d2fe 0%, transparent 40%),
+                  radial-gradient(circle at 80% 80%, #fbcfe8 0%, transparent 40%),
+                  linear-gradient(135deg, #e0e7ff, #f8fafc);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      perspective: 1200px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ===== Side 3D decorations ===== */
+    .side {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 20vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      perspective: 800px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .left { left: 0; }
+    .right { right: 0; }
+
+    /* 3D Cube */
+    .cube {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      transform-style: preserve-3d;
+      animation: spin 8s linear infinite;
+    }
+    .cube div {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border: 2px solid rgba(255,255,255,0.7);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(129,140,248,0.85), rgba(236,72,153,0.75));
+      box-shadow: inset 0 0 20px rgba(255,255,255,0.4);
+    }
+    .cube .f1 { transform: translateZ(40px); }
+    .cube .f2 { transform: rotateY(180deg) translateZ(40px); }
+    .cube .f3 { transform: rotateY(90deg) translateZ(40px); }
+    .cube .f4 { transform: rotateY(-90deg) translateZ(40px); }
+    .cube .f5 { transform: rotateX(90deg) translateZ(40px); }
+    .cube .f6 { transform: rotateX(-90deg) translateZ(40px); }
+
+    /* 3D Ring */
+    .ring {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 14px solid transparent;
+      border-top-color: #f59e0b;
+      border-right-color: #fbbf24;
+      box-shadow: 0 10px 20px rgba(245,158,11,0.35);
+      transform-style: preserve-3d;
+      animation: ringSpin 6s linear infinite;
+    }
+    @keyframes ringSpin {
+      from { transform: rotateX(70deg) rotateZ(0deg); }
+      to   { transform: rotateX(70deg) rotateZ(360deg); }
+    }
+
+    /* Glossy 3D Sphere */
+    .orb {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff 0%, #67e8f9 25%, #0891b2 70%, #164e63 100%);
+      box-shadow: 0 15px 25px rgba(8,145,178,0.4), inset -6px -8px 14px rgba(0,0,0,0.25);
+      animation: float 4s ease-in-out infinite;
+    }
+
+    /* Floating cartoon emoji */
+    .toon {
+      font-size: 56px;
+      filter: drop-shadow(0 10px 8px rgba(30,41,59,0.35));
+      transform-style: preserve-3d;
+      animation: float 5s ease-in-out infinite, tilt 6s ease-in-out infinite;
+    }
+    .toon.delay { animation-delay: -2s, -3s; }
+
+    @keyframes spin {
+      from { transform: rotateX(0deg) rotateY(0deg); }
+      to   { transform: rotateX(360deg) rotateY(360deg); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateZ(0); }
+      50%      { transform: translateY(-22px) translateZ(30px); }
+    }
+    @keyframes tilt {
+      0%, 100% { transform: rotateY(-20deg) rotateZ(-6deg); }
+      50%      { transform: rotateY(20deg) rotateZ(6deg); }
+    }
+
+    /* ===== Main card ===== */
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 760px;
+      background: linear-gradient(145deg, #ffffff, #eef2ff);
+      border-radius: 24px;
+      padding: 32px;
+      transform-style: preserve-3d;
+      transform: rotateX(6deg) rotateY(-4deg);
+      box-shadow:
+        0 1px 0 #fff inset,
+        0 -2px 0 rgba(0,0,0,0.05) inset,
+        0 30px 60px -15px rgba(30, 41, 59, 0.35),
+        0 18px 30px -10px rgba(79, 70, 229, 0.25);
+      transition: transform 0.6s cubic-bezier(.2,.8,.2,1), box-shadow 0.6s;
+      animation: cardIn 1s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .container:hover {
+      transform: rotateX(2deg) rotateY(-1deg) translateZ(10px);
+      box-shadow:
+        0 1px 0 #fff inset,
+        0 40px 80px -20px rgba(30, 41, 59, 0.45),
+        0 25px 40px -12px rgba(79, 70, 229, 0.35);
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: rotateX(30deg) translateY(60px) translateZ(-120px); }
+      to   { opacity: 1; transform: rotateX(6deg) rotateY(-4deg) translateY(0) translateZ(0); }
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin: 0 0 20px;
+      text-align: center;
+      color: #312e81;
+      text-shadow:
+        0 1px 0 #c7d2fe,
+        0 2px 0 #a5b4fc,
+        0 3px 0 #818cf8,
+        0 4px 4px rgba(0,0,0,0.25);
+      transform: translateZ(40px);
+    }
+
+    textarea {
+      width: 100%;
+      height: 260px;
+      padding: 14px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 16px;
+      background: #f1f5f9;
+      box-shadow:
+        inset 6px 6px 12px #cbd5e1,
+        inset -6px -6px 12px #ffffff;
+      transition: box-shadow 0.3s, transform 0.3s;
+      transform: translateZ(20px);
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea:focus {
+      box-shadow:
+        inset 4px 4px 10px #cbd5e1,
+        inset -4px -4px 10px #ffffff,
+        0 0 0 3px rgba(99, 102, 241, 0.4);
+    }
+
+    select {
+      padding: 12px 16px;
+      font-size: 1rem;
+      margin-top: 14px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #ffffff, #e2e8f0);
+      box-shadow: 4px 4px 10px #cbd5e1, -4px -4px 10px #ffffff;
+      cursor: pointer;
+      outline: none;
+      transform: translateZ(25px);
+    }
+
+    label { font-weight: 600; margin-right: 6px; }
+
+    button#btn {
+      position: relative;
+      padding: 14px 28px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-top: 14px;
+      margin-left: 8px;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      background: linear-gradient(180deg, #818cf8, #4f46e5);
+      box-shadow:
+        0 6px 0 #3730a3,
+        0 10px 20px rgba(79, 70, 229, 0.4);
+      transform: translateZ(30px);
+      transition: transform 0.12s, box-shadow 0.12s, background 0.3s;
+    }
+
+    button#btn:hover {
+      background: linear-gradient(180deg, #a5b4fc, #6366f1);
+      transform: translateZ(40px) translateY(-2px);
+      box-shadow:
+        0 8px 0 #3730a3,
+        0 14px 26px rgba(79, 70, 229, 0.5);
+    }
+
+    button#btn:active {
+      transform: translateZ(10px) translateY(4px);
+      box-shadow:
+        0 2px 0 #3730a3,
+        0 4px 8px rgba(79, 70, 229, 0.3);
+    }
+
+    button#btn:disabled {
+      background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+      box-shadow: 0 6px 0 #64748b;
+      cursor: not-allowed;
+      transform: translateZ(0);
+    }
+
+    small {
+      display: block;
+      margin-top: 14px;
+      color: #64748b;
+      transform: translateZ(10px);
+    }
+
+    .result {
+      background: linear-gradient(145deg, #ffffff, #f0f9ff);
+      padding: 22px;
+      border-radius: 18px;
+      margin-top: 26px;
+      white-space: pre-wrap;
+      line-height: 1.8;
+      border-left: 6px solid #6366f1;
+      box-shadow:
+        0 20px 35px -12px rgba(30, 41, 59, 0.35),
+        0 8px 14px -6px rgba(79, 70, 229, 0.25);
+      transform: translateZ(30px);
+      animation: resultIn 0.8s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @keyframes resultIn {
+      from { opacity: 0; transform: rotateX(-25deg) translateZ(-80px); }
+      to   { opacity: 1; transform: rotateX(0) translateZ(30px); }
+    }
+
+    .error {
+      margin-top: 18px;
+      padding: 14px 18px;
+      color: #991b1b;
+      background: linear-gradient(145deg, #fff1f2, #fee2e2);
+      border-radius: 14px;
+      box-shadow: 0 10px 20px -8px rgba(185, 28, 28, 0.4);
+      transform: translateZ(25px);
+      animation: shake 0.5s;
+    }
+
+    .error:empty { display: none; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateZ(25px) translateX(0); }
+      25% { transform: translateZ(25px) translateX(-6px); }
+      75% { transform: translateZ(25px) translateX(6px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .container, .result, .error, .toon, .cube, .ring, .orb, * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Chhoti screen par side decorations chhup jayein */
+    @media (max-width: 1000px) {
+      .side { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .container { transform: none; padding: 20px; }
+      .container:hover { transform: none; }
+      h1 { font-size: 1.5rem; }
+      button#btn { margin-left: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left side decorations -->
+  <div class="side left">
+    <div class="cube">
+      <div class="f1"></div><div class="f2"></div><div class="f3"></div>
+      <div class="f4"></div><div class="f5"></div><div class="f6"></div>
+    </div>
+    <div class="orb"></div>
+    <div class="toon">📚</div>
+  </div>
+
+  <!-- Right side decorations -->
+  <div class="side right">
+    <div class="toon delay">🧠</div>
+    <div class="ring"></div>
+    <div class="toon">✏️</div>
+  </div>
+
+  <div class="container">
+    <h1>Document Summarizer</h1>
+    <textarea id="text" placeholder="Yahan apna lecture note, article ya report paste karein..."></textarea>
+    <br>
+    <label>Zaban: </label>
+    <select id="lang">
+      <option value="Roman Urdu">Roman Urdu</option>
+      <option value="English">English</option>
+      <option value="Urdu">Urdu</option>
+    </select>
+    <button id="btn">Summary banao</button>
+    <small>Maximum 20000 characters.</small>
+
+    <div id="error" class="error"></div>
+    <div id="result" class="result" style="display:none"></div>
+  </div>
+
+<script>
+  const btn = document.getElementById("btn");
+  const errorBox = document.getElementById("error");
+  const resultBox = document.getElementById("result");
+
+  btn.addEventListener("click", async () => {
+    const text = document.getElementById("text").value.trim();
+    const lang = document.getElementById("lang").value;
+
+    errorBox.textContent = "";
+    resultBox.style.display = "none";
+
+    if (!text) {
+      errorBox.textContent = "Pehle text paste karein.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Ruko, summary ban rahi hai...";
+
+    try {
+      const res = await fetch("/.netlify/functions/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, lang })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Kuch masla aaya.");
+
+      resultBox.textContent = data.summary;
+      resultBox.style.display = "block";
+    } catch (err) {
+      errorBox.textContent = "Error: " + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Summary banao";
+    }
+  });
+</script>
+</body>
+</html>
