@@ -1,4 +1,4 @@
-const MODEL = "claude-haiku-5-5";
+const MODEL = "gemini-2.5-flash";
 const MAX_CHARS = 20000;
 
 module.exports = async (req, res) => {
@@ -28,29 +28,33 @@ module.exports = async (req, res) => {
     `TEXT:\n${text}`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 800,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 800 },
+        }),
+      }
+    );
 
     const data = await response.json();
     if (!response.ok) {
       return res.status(500).json({ error: (data.error && data.error.message) || "API mein masla aaya." });
     }
 
-    const summary = data.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
+    const summary = (data.candidates?.[0]?.content?.parts || [])
+      .map((p) => p.text || "")
       .join("");
+
+    if (!summary) {
+      return res.status(500).json({ error: "AI ne khali jawab diya. Dobara try karein." });
+    }
 
     return res.status(200).json({ summary });
   } catch (err) {
